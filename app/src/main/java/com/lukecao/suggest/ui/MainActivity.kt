@@ -18,8 +18,11 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -27,6 +30,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -291,8 +295,28 @@ private fun Screen(
         if (rerank) Scheduler.refreshNow(context)
     }
 
+    // The status-bar height is added to the top padding rather than applied as a
+    // statusBarsPadding modifier, because the two look different once the list scrolls.
+    // A modifier insets the whole list, so the clock sits above an empty strip and
+    // content is clipped at its lower edge; contentPadding insets only the content, so
+    // the first item starts below the clock and later items pass under it. The second is
+    // what every other edge-to-edge app does, and it is the reason the padding is here at
+    // all rather than on the Column in onCreate.
+    //
+    // Needed since targetSdk 35, which made this window draw behind the system bars —
+    // the sibling AdBar got its navigationBarsPadding at the time and this did not, so
+    // the title has been sitting under the clock since. Not a targetSdk 36 change; 36
+    // only removes the opt-out this app never used.
+    val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+
     LazyColumn(
-        modifier = modifier.fillMaxSize().padding(16.dp),
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = 16.dp + statusBar,
+            bottom = 16.dp,
+        ),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
