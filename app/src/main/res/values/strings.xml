@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Smart Suggest</string>
+    <!-- One label per size, because all five sit next to each other in the picker and
+         "Suggested apps" five times over is not a choice. -->
+    <string name="widget_label_2x2">Suggested apps 2 × 2</string>
+    <string name="widget_label_2x3">Suggested apps 2 × 3</string>
+    <string name="widget_label_4x2">Suggested apps 4 × 2</string>
+    <string name="widget_label_4x3">Suggested apps 4 × 3</string>
+    <string name="widget_label_4x5">Suggested apps 4 × 5</string>
+    <string name="widget_description">Apps ranked by how you actually use them: what you were just doing, the time of day, where you are, and what you tap. Shows one app per cell.</string>
+    <!-- The whole of the widget when there is nothing to show, which in practice means
+         usage access has not been granted yet. Tapping it opens the app. -->
+    <string name="widget_empty">Tap to grant usage access</string>
+    <!-- Shown in Settings > Notification access, next to the switch. -->
+    <string name="notif_listener_label">Smart Suggest ranking</string>
+</resources>

@@ -1,0 +1,47 @@
+[versions]
+agp = "8.7.3"
+# 2.1.x rather than 2.0.x because play-services-ads 24.x ships Kotlin metadata version
+# 2.1.0, and a compiler will not read metadata from a newer minor than itself. Measured
+# from the artifacts rather than guessed — ads 23.6.0 is 1.9.9999, 24.0.0-24.8.0 are
+# 2.1.0, 25.0.0 is 2.2.0, 25.4.0 is 2.3.0. Deliberately stopped at 2.1: the Compose
+# compiler plugin moves in lockstep with Kotlin, and 2.2+ wants a newer Compose runtime
+# than the BOM below pins, which would pull activity and lifecycle along with it.
+kotlin = "2.1.20"
+coreKtx = "1.15.0"
+work = "2.10.0"
+glance = "1.1.1"
+composeBom = "2024.12.01"
+activityCompose = "1.9.3"
+lifecycle = "2.8.7"
+# The newest ads SDK whose Kotlin metadata the pinned compiler can read; see `kotlin`
+# above for the measurements. Not the newest published version, which is a real cost:
+# Google reduces fill for aging ad SDKs and eventually stops serving them, so this is a
+# version to revisit, not to settle on. Nothing in the banner API used here
+# (MobileAds, AdView, AdSize, AdRequest, AdListener) has changed in years.
+playAds = "24.8.0"
+billing = "9.1.0"
+ump = "4.0.0"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-work-runtime-ktx = { group = "androidx.work", name = "work-runtime-ktx", version.ref = "work" }
+androidx-glance-appwidget = { group = "androidx.glance", name = "glance-appwidget", version.ref = "glance" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
+androidx-compose-ui = { group = "androidx.compose.ui", name = "ui" }
+androidx-lifecycle-runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "lifecycle" }
+
+# Monetization. None of these are reachable from the widget or the refresh worker —
+# see the "Ads" section of the README for why that separation is load-bearing.
+play-services-ads = { group = "com.google.android.gms", name = "play-services-ads", version.ref = "playAds" }
+# Plain, not -ktx. The ktx suspend wrappers changed shape across 7 -> 8 -> 9 while the
+# listener interfaces did not, and billing is an event stream anyway — a purchase can
+# arrive from PurchasesUpdatedListener with nobody having called anything.
+billing = { group = "com.android.billingclient", name = "billing", version.ref = "billing" }
+user-messaging-platform = { group = "com.google.android.ump", name = "user-messaging-platform", version.ref = "ump" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  2 x 2 — four suggestions.
+
+  minWidth/minHeight follow the platform's own cell arithmetic, 70n - 30 dp, so the
+  host reserves exactly n cells rather than rounding up to n+1 on a tight grid.
+  targetCell* is the modern spelling of the same thing and is what recent launchers
+  actually read; the dp figures are the fallback for the ones that do not.
+
+  resizeMode="none", on every size. The size is what decides how many suggestions
+  there are, and a widget the host had let you stretch would be asked to draw a
+  grid the host still thought was the old shape.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:description="@string/widget_description"
+    android:initialLayout="@layout/glance_default_loading_layout"
+    android:minHeight="110dp"
+    android:minWidth="110dp"
+    android:previewLayout="@layout/widget_preview_2x2"
+    android:resizeMode="none"
+    android:targetCellHeight="2"
+    android:targetCellWidth="2"
+    android:updatePeriodMillis="0"
+    android:widgetCategory="home_screen" />

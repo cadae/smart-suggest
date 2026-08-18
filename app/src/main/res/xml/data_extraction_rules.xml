@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Nothing this app stores may be copied off the phone.
+
+    `allowBackup="false"` in the manifest already stops the cloud backup, but on API 31
+    and up that flag does not cover device-to-device transfer — this file is the only
+    place that can, and it is the case that matters more, because a transfer moves the
+    whole data directory in one go.
+
+    What is in there is a three-week trail of where the phone has been, which WiFi
+    networks it joined, which apps were open at the time and which apps sent
+    notifications. It is the most personal thing in the app by a wide margin, it is only
+    ever read to rank eight icons, and it is worth nothing anywhere else — a trail from
+    the old phone would be an odd thing to rank the new one on regardless. Excluded on
+    purpose, and losing it costs three weeks of relearning.
+
+    Both sections have to list this separately: the parser does not treat a rule in one
+    as saying anything about the other.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="file" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

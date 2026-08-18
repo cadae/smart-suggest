@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Four app slots, the top-left one highlighted: "the pick".
+
+  Geometry, because the previous version got both of these wrong: tiles are 20
+  wide with a 5 gap, so the block spans 31.5..76.5 on both axes and is centred on
+  54,54 — the middle of the 108 canvas. Its corners sit 31.8 from the centre,
+  inside the 36 radius that every launcher mask is guaranteed to show, so nothing
+  clips on a circular mask.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M37,31.5 h9 a5.5,5.5 0 0 1 5.5,5.5 v9 a5.5,5.5 0 0 1 -5.5,5.5 h-9 a5.5,5.5 0 0 1 -5.5,-5.5 v-9 a5.5,5.5 0 0 1 5.5,-5.5 z" />
+    <path
+        android:fillAlpha="0.55"
+        android:fillColor="#FFFFFF"
+        android:pathData="M62,31.5 h9 a5.5,5.5 0 0 1 5.5,5.5 v9 a5.5,5.5 0 0 1 -5.5,5.5 h-9 a5.5,5.5 0 0 1 -5.5,-5.5 v-9 a5.5,5.5 0 0 1 5.5,-5.5 z" />
+    <path
+        android:fillAlpha="0.55"
+        android:fillColor="#FFFFFF"
+        android:pathData="M37,56.5 h9 a5.5,5.5 0 0 1 5.5,5.5 v9 a5.5,5.5 0 0 1 -5.5,5.5 h-9 a5.5,5.5 0 0 1 -5.5,-5.5 v-9 a5.5,5.5 0 0 1 5.5,-5.5 z" />
+    <path
+        android:fillAlpha="0.3"
+        android:fillColor="#FFFFFF"
+        android:pathData="M62,56.5 h9 a5.5,5.5 0 0 1 5.5,5.5 v9 a5.5,5.5 0 0 1 -5.5,5.5 h-9 a5.5,5.5 0 0 1 -5.5,-5.5 v-9 a5.5,5.5 0 0 1 5.5,-5.5 z" />
+</vector>

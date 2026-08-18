@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lint>
+
+    <!--
+      ObsoleteSdkInt says mipmap-anydpi-v26 is a redundant qualifier because minSdk is
+      31, and offers to merge the folder into mipmap-anydpi. Following that advice
+      breaks the build:
+
+          AAPT: error: resource mipmap/ic_launcher not found
+
+      ic_launcher.xml is an <adaptive-icon>, an element AAPT2 only accepts in a folder
+      qualified v26 or higher. Without the qualifier it strips the element rather than
+      trusting minSdk, and the resource stops existing at all — so the qualifier is
+      load-bearing, not obsolete. Verified by applying the fix and building.
+    -->
+    <issue id="ObsoleteSdkInt">
+        <ignore path="src/main/res/mipmap-anydpi-v26" />
+    </issue>
+
+</lint>

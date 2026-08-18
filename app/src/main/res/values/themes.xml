@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Deliberately not @android:style/Theme.DeviceDefault.DayNight.NoActionBar: the
+      DayNight family has no NoActionBar variant. Dark mode is done the old way
+      instead, with a -night override of this same style.
+    -->
+    <style name="Theme.Suggest" parent="@android:style/Theme.DeviceDefault.Light.NoActionBar" />
+
+    <!-- The launch trampoline must never draw anything. -->
+    <style name="Theme.Trampoline" parent="@android:style/Theme.Translucent.NoTitleBar">
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowNoDisplay">false</item>
+    </style>
+</resources>
