@@ -51,12 +51,31 @@ val testBannerUnitId = "ca-app-pub-3940256099942544/9214589741"
 
 android {
     namespace = "com.lukecao.suggest"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.lukecao.suggest"
         minSdk = 31
-        targetSdk = 35
+
+        /*
+         * 36 because Play requires it, not because anything here wants it.
+         *
+         * From 31 August 2026 a new app cannot be submitted below Android 16, and the
+         * timeline makes this unavoidable rather than optional: a new personal developer
+         * account owes a 14-day closed test with 12 testers before it may even apply for
+         * production, so the earliest possible submission is already past the date. An
+         * extension to 1 November 2026 can be requested from the Console, which buys
+         * time and does not remove the requirement.
+         *
+         * The audit of what Android 16 changes for a target bump is in the README under
+         * "Targeting Android 16, and what that actually changed". The short version is
+         * that the one change that could have hurt — edge-to-edge becoming impossible to
+         * opt out of — costs nothing here, because targetSdk 35 already enforced it and
+         * this app never used the opt-out. The one item that could not be settled by
+         * reading code is whether Android 16's tighter job quotas still let the
+         * 15-minute refresh land, which needs a phone and a few days.
+         */
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
     }

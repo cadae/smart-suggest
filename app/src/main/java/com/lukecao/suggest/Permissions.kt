@@ -40,7 +40,23 @@ object Permissions {
      * Usage access is an appop, not a runtime permission, so it needs the
      * two-step check: MODE_DEFAULT means "no explicit decision recorded", and
      * only then does the manifest permission decide.
+     *
+     * `unsafeCheckOpNoThrow` became deprecated when compileSdk moved to 36 — it is not
+     * deprecated against android-35 — and it is kept anyway, deliberately. It is not
+     * removed, and there is no public API that reads an appop's mode without it, so the
+     * only alternative is to infer access from behaviour: call `queryUsageStats` and treat
+     * an empty list as denied. That inference is wrong in a way that matters here, because
+     * an empty list is ambiguous — a phone that granted access five minutes ago also
+     * returns nothing — and this answer drives whether the UI shows "Required" against the
+     * one permission the app cannot work without. A stale "not granted" on a freshly
+     * granted phone is the worst possible first impression.
+     *
+     * Revisit when the platform offers a replacement rather than when the warning gets
+     * annoying, and check the deprecation note at that point: the `unsafe` prefix already
+     * warned that MODE_ALLOWED is not a security guarantee, which is fine for a UI hint
+     * and would not be fine for a gate.
      */
+    @Suppress("DEPRECATION")
     fun hasUsageAccess(context: Context): Boolean {
         val aom = context.getSystemService(AppOpsManager::class.java) ?: return false
         val mode = aom.unsafeCheckOpNoThrow(
