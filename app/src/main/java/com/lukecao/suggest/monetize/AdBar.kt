@@ -25,6 +25,7 @@ import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
 import com.lukecao.suggest.BuildConfig
+import com.lukecao.suggest.data.Prefs
 
 private const val TAG = "SuggestAds"
 
@@ -44,6 +45,13 @@ fun AdBar(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val widthDp = LocalConfiguration.current.screenWidthDp
     var loaded by remember { mutableStateOf(false) }
+
+    // Whether to hold the bar's height open before the first ad of this session arrives.
+    // Starts true once a banner has filled on this install, which is what stops every
+    // later launch from opening with a gap that closes a couple of seconds in. Cleared
+    // again by a failed request, so a device that cannot fill still ends up with no band
+    // rather than an empty one.
+    var reserved by remember { mutableStateOf(Prefs.bannerEverFilled(context)) }
 
     // Anchored adaptive rather than the fixed 320x50 BANNER: the height comes back sized
     // to the device instead of scaled to it, which on a Fold's inner display is the
@@ -71,6 +79,13 @@ fun AdBar(modifier: Modifier = Modifier) {
                     // because it is the number that decides the layout.
                     Log.i(TAG, "banner loaded: ${size.width}x${size.height}dp")
                     loaded = true
+                    // Latched on the first fill only, so the banner's own refresh timer
+                    // does not write to disk every thirty seconds for the life of the
+                    // screen.
+                    if (!reserved) {
+                        reserved = true
+                        Prefs.putBannerEverFilled(context)
+                    }
                 }
 
                 override fun onAdFailedToLoad(error: LoadAdError) {
@@ -78,6 +93,7 @@ fun AdBar(modifier: Modifier = Modifier) {
                     // every failure on a device with no connection.
                     Log.i(TAG, "banner failed: ${error.code} ${error.message}")
                     loaded = false
+                    reserved = false
                 }
             }
         }
@@ -111,15 +127,23 @@ fun AdBar(modifier: Modifier = Modifier) {
         }
     }
 
-    // Height is forced to zero until an ad exists, rather than left to wrap. An AdView
-    // measures to its declared AdSize from the moment setAdSize is called, whether or not
-    // anything has filled it — so "wrap content" reserves the full banner height on a
-    // device that will never show one, and the result is a permanent empty band above the
-    // navigation bar. A bar that appears is better than a hole that never fills.
+    // Height is driven explicitly rather than left to wrap. An AdView measures to its
+    // declared AdSize from the moment setAdSize is called, whether or not anything has
+    // filled it — so "wrap content" reserves the full banner height on a device that will
+    // never show one, and the result is a permanent empty band above the navigation bar.
+    //
+    // Zero until the first ad ever arrives, then held open from the first frame of every
+    // launch after that. The two conditions are deliberately different because the two
+    // situations are: on a device with no fill there is nothing to wait for and the band
+    // should never exist, but on a device that fills routinely, collapsing to zero at
+    // launch means about 2.5s of missing bar followed by the content jumping up by the
+    // banner's height. Measured on the cover panel: first frame at +197ms, `banner loaded`
+    // at +2.56s. That gap is also indistinguishable from the ads having been removed,
+    // which is exactly how it gets reported.
     AndroidView(
         factory = { view },
         modifier = modifier
             .fillMaxWidth()
-            .height(if (loaded) size.height.dp else 0.dp),
+            .height(if (loaded || reserved) size.height.dp else 0.dp),
     )
 }

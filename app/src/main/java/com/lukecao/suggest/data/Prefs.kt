@@ -20,6 +20,7 @@ object Prefs {
     private const val KEY_SIG_NOTIF = "sig_notif"
     private const val KEY_SIG_CALENDAR = "sig_calendar"
     private const val KEY_ADS_REMOVED = "ads_removed"
+    private const val KEY_BANNER_FILLED = "banner_filled"
 
     /**
      * Settings that no longer exist, cleared on the next write.
@@ -104,6 +105,20 @@ object Prefs {
 
     fun putAdsRemoved(context: Context, removed: Boolean) =
         sp(context).edit().putBoolean(KEY_ADS_REMOVED, removed).apply()
+
+    /**
+     * Whether a banner has ever filled on this install.
+     *
+     * Only [AdBar] reads it, and only to decide whether to reserve the bar's height in the
+     * very first frame rather than waiting for the ad. It is a latch, not a state: nothing
+     * ever sets it back to false, because "this device can show ads" does not stop being
+     * true when one request fails.
+     */
+    fun bannerEverFilled(context: Context): Boolean =
+        sp(context).getBoolean(KEY_BANNER_FILLED, false)
+
+    fun putBannerEverFilled(context: Context) =
+        sp(context).edit().putBoolean(KEY_BANNER_FILLED, true).apply()
 
     fun settings(context: Context): WidgetSettings {
         val s = sp(context)
