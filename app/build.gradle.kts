@@ -72,8 +72,14 @@ android {
          * that the one change that could have hurt — edge-to-edge becoming impossible to
          * opt out of — costs nothing here, because targetSdk 35 already enforced it and
          * this app never used the opt-out. The one item that could not be settled by
-         * reading code is whether Android 16's tighter job quotas still let the
-         * 15-minute refresh land, which needs a phone and a few days.
+         * reading code was whether Android 16's tighter job quotas still let the
+         * 15-minute refresh land; since measured on device, and they defer it without
+         * ever killing it — 85 runs in 16.1 hours, worst gap 120.8 minutes in deep Doze.
+         *
+         * What the audit did miss, because the wrong code was absent rather than
+         * present, is that edge-to-edge from 35 also removed the scrim the platform drew
+         * behind the system bars, leaving nothing to choose contrasting icons. See
+         * res/values/themes.xml.
          */
         targetSdk = 36
         versionCode = 1
