@@ -2,6 +2,7 @@ package com.lukecao.suggest.monetize
 
 import android.app.Activity
 import android.util.Log
+import androidx.compose.runtime.mutableStateOf
 import com.google.android.gms.ads.MobileAds
 import com.google.android.ump.ConsentInformation
 import com.google.android.ump.ConsentRequestParameters
@@ -35,8 +36,23 @@ object Ads {
      */
     private val started = AtomicBoolean(false)
 
-    @Volatile
-    private var ready = false
+    /**
+     * Snapshot state, not the `@Volatile Boolean` this used to be, and the difference is a
+     * shipping bug rather than a style preference.
+     *
+     * [AdBar] reads this *during composition*. A plain field is invisible to Compose, so
+     * nothing invalidates when it flips — the composable only re-read it because an
+     * unrelated key recomposed the lambda it sits in, and because `AdBar` happened not to be
+     * skipped. Both of those are accidents, and one of them stopped being true: after the
+     * Compose 1.11 upgrade the SDK initialised, `ready` went true, and the banner never
+     * requested at all. What that leaves on screen is an `AdView` at exactly the right size
+     * with nothing in it, and *silence* in the log, because the load is never issued and so
+     * neither `onAdLoaded` nor `onAdFailedToLoad` ever fires.
+     *
+     * Snapshot state makes the dependency real. See README, *The banner stopped requesting
+     * when Compose got better at skipping*.
+     */
+    private val readyState = mutableStateOf(false)
 
     /**
      * True once the SDK is initialised and an ad may be requested. Read by [AdBar] to
@@ -44,7 +60,7 @@ object Ads {
      * SDK rather than dropped, but a view built before it has nothing to show and a
      * measured height of zero.
      */
-    fun ready(): Boolean = ready
+    fun ready(): Boolean = readyState.value
 
     /**
      * Gather consent if it is needed, then initialise.
@@ -61,7 +77,7 @@ object Ads {
      * it as denied would mean a first run on a bad connection never shows an ad again.
      */
     fun start(activity: Activity, onReady: () -> Unit = {}) {
-        if (ready) {
+        if (readyState.value) {
             onReady()
             return
         }
@@ -124,9 +140,26 @@ object Ads {
         // hundreds of milliseconds on a cold start, and this activity is the launcher
         // entry — the main thread here is the thing between a tap and a window.
         Thread {
-            MobileAds.initialize(activity.applicationContext) {
-                ready = true
-                activity.runOnUiThread(onReady)
+            Log.i(TAG, "initialising the ads SDK")
+            MobileAds.initialize(activity.applicationContext) { status ->
+                // Logged for the same reason AdBar logs both outcomes: without it, a banner
+                // that never appears is ambiguous between "the SDK never finished starting"
+                // and "the request failed", and those have nothing in common. The adapter
+                // statuses are in the message because a NOT_READY adapter is the SDK's own
+                // account of why it is not serving.
+                Log.i(
+                    TAG,
+                    "ads SDK ready: " + status.adapterStatusMap.entries.joinToString {
+                        "${it.key}=${it.value.initializationState}"
+                    },
+                )
+                // Both on the main thread: the state write is what recomposes AdBar, and
+                // doing it here keeps the write and the callback in one order rather than
+                // two racing ones.
+                activity.runOnUiThread {
+                    readyState.value = true
+                    onReady()
+                }
             }
         }.apply { name = "ads-init" }.start()
     }
