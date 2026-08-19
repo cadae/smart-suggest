@@ -327,7 +327,7 @@ private fun Screen(
             PermissionCard(
                 title = "Usage access",
                 granted = hasUsage,
-                detail = "Required. Supplies the launch times and dwell durations everything else is built on.",
+                detail = "Required. Supplies the launch times and dwell durations.",
                 buttonLabel = "Open usage access settings",
                 onClick = {
                     context.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
@@ -341,8 +341,8 @@ private fun Screen(
                     title = "Location: allow all the time",
                     granted = hasBgLoc,
                     detail = "The refresh runs while nothing of ours is on screen. " +
-                        "A while-in-use grant is refused then, so without this the place trail stays nearly empty. " +
-                        "Set Location to \"Allow all the time\" in app permissions.",
+                        "A while-in-use grant is refused, so set Location to \"Allow all the " +
+                            "time\" in app permissions.",
                     buttonLabel = "Open app permissions",
                     onClick = { openAppSettings(context) },
                 )
@@ -420,9 +420,8 @@ private fun Screen(
             Spacer(Modifier.height(4.dp))
             Text("Ranking right now", style = MaterialTheme.typography.titleMedium)
             Text(
-                "Each row is score · launches · dwell, then the usage prior and every " +
-                    "signal that multiplied it, biggest mover first. Below 1.00 means " +
-                    "that signal argued against the app.",
+                "Score · launches · dwell, then the prior and each signal that moved " +
+                    "it. Below 1.00 argued against the app.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -436,8 +435,7 @@ private fun Screen(
         if (ranked.isEmpty() && hasUsage) {
             item {
                 Text(
-                    "No usage events yet. The OS starts recording once usage access is on — " +
-                        "give it an hour of normal phone use.",
+                    "No usage events yet. Give it an hour of normal use.",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -483,13 +481,9 @@ private fun SignalsCard(
         subtitle = "$on of ${offered.size} on · each one needs a permission",
     ) {
         Text(
-            "Everything that is free to measure is always on: total usage, time of day, " +
-                "what you were just doing, which app follows which, weekly rhythm, " +
-                "overdue apps, headphones and charging, and learning from what you tap " +
-                "and ignore. The ones below are the ones that cost something — a " +
-                "permission — so they are the ones worth deciding about. Switching one " +
-                "off makes its term neutral rather than zero, so the ranking gets simpler " +
-                "instead of worse.",
+            "Signals that cost nothing are always on. The ones below need a " +
+                "permission, so they are yours to decide. Switching one off makes it " +
+                "neutral rather than zero.",
             style = MaterialTheme.typography.bodySmall,
         )
 
@@ -499,13 +493,10 @@ private fun SignalsCard(
         if (Permissions.LOCATION_DECLARED) {
             SignalRow(
                 title = "Place",
-                detail = "Where you are, the WiFi network as an exact place identity, and " +
-                    "whether you are on the move. The only signal here that spends battery: " +
-                    "it reads the OS location cache first and only asks for a fix when that " +
-                    "has gone stale, and never from GPS. Coordinates are kept on the phone " +
-                    "only, the network name is stored as a hash rather than a name, and " +
-                    "movement is worked out from the distance between two readings rather " +
-                    "than by asking for activity recognition.",
+                detail = "Where you are, which WiFi you are on, and whether you are " +
+                    "moving. The only signal that costs battery — it prefers the OS " +
+                    "location cache and never uses GPS. Coordinates stay on the phone " +
+                    "and network names are stored as hashes.",
                 checked = sig.place,
                 blocked = sig.place && !hasLocation,
                 blockedNote = "Needs location. Until it is granted this term is skipped.",
@@ -516,25 +507,22 @@ private fun SignalsCard(
 
         SignalRow(
             title = "Unopened notifications",
-            detail = "The single strongest predictor that you are about to open an app — " +
-                "weighted by how often you actually act on that app's notifications, " +
-                "or the noisiest app on the phone would own the grid. Only which app " +
-                "posted and when is ever read; not the title, the text or the sender.",
+            detail = "The strongest single predictor, weighted by how often you act on " +
+                "that app's notifications. Only the app and the time are read — never " +
+                "the title, text or sender.",
             checked = sig.notifications,
             blocked = sig.notifications && !hasNotifAccess,
-            blockedNote = "Needs notification access, which is granted in Settings " +
-                "rather than by a prompt. While this switch is off the service asks to " +
-                "be unbound, so nothing is delivered to us at all.",
+            blockedNote = "Needs notification access, granted in Settings. While this " +
+                "is off, nothing reaches the app at all.",
             onGrant = onGrantNotifications,
             grantLabel = "Open notification access",
         ) { set(sig.copy(notifications = it)) }
 
         SignalRow(
             title = "Meetings",
-            detail = "Prefers the apps you use during meetings when one is imminent, and " +
-                "opens the named app outright for an event that specifies one or " +
-                "carries a recognisable meeting link. Read-only; nothing from an event " +
-                "is stored.",
+            detail = "Prefers the apps you use in meetings when one is close, and " +
+                "surfaces the app an event names or links to. Read-only; nothing is " +
+                "stored.",
             checked = sig.calendar,
             blocked = sig.calendar && !hasCalendar,
             blockedNote = "Needs calendar access.",
@@ -608,10 +596,8 @@ private fun SizesCard(key: Int) {
         subtitle = if (total == 0) "None on the home screen yet" else "$total placed",
     ) {
         Text(
-            "Each size is a separate widget and shows as many apps as it has cells. " +
-                "They are not resizable on purpose: the size is what decides how many " +
-                "suggestions there are, so it is fixed when you place one. Add as many " +
-                "as you like — they all draw from the same ranking.",
+            "Each size is a separate widget showing as many apps as it has cells, so the size " +
+                "is fixed when you place it. Add as many as you like — they share one ranking.",
             style = MaterialTheme.typography.bodySmall,
         )
 
@@ -650,8 +636,8 @@ private fun SizesCard(key: Int) {
         if (!canPin) {
             Spacer(Modifier.height(6.dp))
             Text(
-                "This launcher does not let an app place a widget for you. Long-press " +
-                    "the home screen, open the widget picker and look for Smart Suggest.",
+                "This launcher cannot place a widget for you. Long-press the home screen and " +
+                    "find Smart Suggest in the picker.",
                 style = MaterialTheme.typography.bodySmall,
             )
         }
@@ -678,19 +664,16 @@ private fun HiddenAppsCard(
         },
     ) {
         Text(
-            "The switch hides Settings, Device care, permission and installer " +
-                "screens — things that rack up sessions without ever being worth a " +
-                "shortcut.",
+            "Hides Settings, Device care, permission and installer screens — high on " +
+                "sessions, never worth a shortcut.",
             style = MaterialTheme.typography.bodySmall,
         )
 
         Spacer(Modifier.height(10.dp))
 
         Text(
-            "Hide your dock apps by hand — the home screen's dock is private to One UI " +
-                "Home, so no public API reports what is in it and it cannot be detected " +
-                "automatically. The picker lists everything installed, not just what " +
-                "currently ranks.",
+            "Hide dock apps by hand: One UI keeps the dock private, so it cannot be detected. " +
+                "The picker lists everything installed.",
             style = MaterialTheme.typography.bodySmall,
         )
 
@@ -885,11 +868,9 @@ private fun RefreshCard(settings: WidgetSettings, onChange: (WidgetSettings) -> 
             if (settings.eventTriggers) ", and on events" else "",
     ) {
         Text(
-            "Fifteen minutes is the shortest period the OS will schedule background " +
-                "work at, so it is the interval, and there is no setting for it: " +
-                "everything longer is a worse widget, and there was no honest way to go " +
-                "shorter. The OS may still delay a run when the phone is idle, so treat " +
-                "it as \"no staler than\" rather than a promise.",
+            "Fifteen minutes is the shortest the OS will schedule, so it is the interval and " +
+                "there is no setting for it. A run can still be delayed while the phone is idle, " +
+                "so treat it as \"no staler than\".",
             style = MaterialTheme.typography.bodySmall,
         )
 
@@ -898,9 +879,8 @@ private fun RefreshCard(settings: WidgetSettings, onChange: (WidgetSettings) -> 
             Column(modifier = Modifier.weight(1f)) {
                 Text("Refresh on events", style = MaterialTheme.typography.labelLarge)
                 Text(
-                    "Re-rank when a signal changes rather than waiting out the " +
-                        "interval: a notification arrives, headphones or the charger " +
-                        "go in or out, you unlock the phone, an app is installed.",
+                    "Re-rank when something changes rather than waiting out the interval: a " +
+                        "notification, headphones or charger, an unlock, an install.",
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
@@ -914,11 +894,9 @@ private fun RefreshCard(settings: WidgetSettings, onChange: (WidgetSettings) -> 
         if (settings.eventTriggers) {
             Spacer(Modifier.height(6.dp))
             Text(
-                "Which events the OS actually delivers is up to the OS and varies by " +
-                    "phone. Unlock and headphone changes are the least certain: they " +
-                    "need something of ours already running, which notification " +
-                    "access provides. Anything that never arrives just leaves the " +
-                    "timer underneath.",
+                "Which of these the OS delivers varies by phone. Unlock and headphone changes " +
+                    "are the least reliable — they need notification access. Anything missing " +
+                    "just leaves the timer underneath.",
                 style = MaterialTheme.typography.bodySmall,
             )
             if (lastTrigger != null) {
@@ -950,10 +928,8 @@ private fun EvalCard(report: String?, running: Boolean, onRun: () -> Unit) {
         subtitle = "Scores the ranker against what you actually opened",
     ) {
         Text(
-            "Replays every app open in the stored history: ranks the moment just before " +
-                "it from what was known then, and records where the app you went on to " +
-                "open had landed. Takes about a minute, and needs a few days of history " +
-                "before the numbers mean anything. Also logged under \"${Replay.TAG}\".",
+            "Replays every app open in the history, ranking each moment from what was known " +
+                "then. Takes about a minute and needs a few days of history.",
             style = MaterialTheme.typography.bodySmall,
         )
         Spacer(Modifier.height(10.dp))
@@ -1003,18 +979,14 @@ private fun RemoveAdsCard(pay: Billing.State, onBuy: () -> Unit) {
     ) {
         if (pay.adsRemoved) {
             Text(
-                "The bar is gone for good, on this phone and on any phone signed in to " +
-                    "the same Google account. Google Play remembers the purchase, not " +
-                    "this app, so reinstalling does not lose it and there is nothing to " +
-                    "restore.",
+                "Gone for good, on this phone and any phone on the same Google account. Play " +
+                    "remembers the purchase, so a reinstall keeps it.",
                 style = MaterialTheme.typography.bodySmall,
             )
         } else {
             Text(
-                "The widget itself never shows an ad — only this settings screen does, " +
-                    "and only while it is open. Nothing about your usage, your apps or " +
-                    "where you have been is sent to the advertiser: the ranking is " +
-                    "computed on the phone and stays there.",
+                "Only this settings screen shows an ad, never the widget. Nothing about your " +
+                    "usage or apps is sent to the advertiser — the ranking stays on the phone.",
                 style = MaterialTheme.typography.bodySmall,
             )
             Spacer(Modifier.height(10.dp))
@@ -1026,9 +998,8 @@ private fun RemoveAdsCard(pay: Billing.State, onBuy: () -> Unit) {
 
             if (pay.pending) {
                 Text(
-                    "Google is still clearing the payment. The bar disappears by itself " +
-                        "once that completes — there is nothing else to do, and paying " +
-                        "again would charge twice.",
+                    "Google is still clearing the payment. The bar goes by itself when that " +
+                        "completes; paying again would charge twice.",
                     style = MaterialTheme.typography.bodySmall,
                 )
             } else {
@@ -1058,8 +1029,7 @@ private fun RemoveAdsCard(pay: Billing.State, onBuy: () -> Unit) {
             HorizontalDivider()
             Spacer(Modifier.height(10.dp))
             Text(
-                "You chose what advertisers here may use. That choice can be changed at " +
-                    "any time.",
+                "You chose what advertisers may use. You can change that at any time.",
                 style = MaterialTheme.typography.bodySmall,
             )
             Spacer(Modifier.height(6.dp))
