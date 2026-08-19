@@ -68,6 +68,7 @@ object Scheduler {
     const val REASON_PACKAGES = "an app was installed or removed"
     const val REASON_SETTINGS = "you changed a setting"
     const val REASON_BOOT = "the phone restarted"
+    const val REASON_UPDATE = "the app was updated"
 
     /** Everything that has to be re-established after a settings change or a reboot. */
     fun reschedule(context: Context) {

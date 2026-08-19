@@ -20,11 +20,17 @@ class BootReceiver : BroadcastReceiver() {
         // handed will happily do work for any future intent-filter somebody adds, and
         // rescheduling is not free. Checked so the filter and the behaviour cannot
         // drift apart.
-        when (intent?.action) {
-            Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED -> {
-                Scheduler.reschedule(context)
-                Scheduler.refreshNow(context, Scheduler.REASON_BOOT)
-            }
+        // The two actions do the same work and are still told apart, because the reason is
+        // shown in the app and an update is not a restart. It also makes the reason a
+        // usable signal from the other side: every `install -r` lands here, so seeing this
+        // one appear is how a verification run knows a real re-rank happened rather than
+        // hoping a forced job did something.
+        val reason = when (intent?.action) {
+            Intent.ACTION_BOOT_COMPLETED -> Scheduler.REASON_BOOT
+            Intent.ACTION_MY_PACKAGE_REPLACED -> Scheduler.REASON_UPDATE
+            else -> return
         }
+        Scheduler.reschedule(context)
+        Scheduler.refreshNow(context, reason)
     }
 }
