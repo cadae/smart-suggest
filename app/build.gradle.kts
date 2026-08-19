@@ -1,3 +1,4 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
@@ -147,10 +148,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
         // On so that the evaluation harness can be gated on a compile-time constant.
@@ -159,6 +156,25 @@ android {
         // store as unreachable code. With BuildConfig.DEBUG the branch is dead at
         // compile time and R8 removes it outright — checked, not assumed: see README.
         buildConfig = true
+    }
+}
+
+/*
+ * The Kotlin JVM target, which does not live in `android { }`.
+ *
+ * It used to, as `kotlinOptions { jvmTarget = "17" }`. Kotlin 2.4 turned that DSL from a
+ * deprecation warning into a hard error, so this is a migration rather than a preference —
+ * and the replacement is a top-level `kotlin { }` block owned by the Kotlin plugin, not a
+ * renamed field inside AGP's block. Worth stating because the obvious fix, moving
+ * `jvmTarget` into `compileOptions` next to the Java levels, does not compile: those are
+ * AGP's and this is not.
+ *
+ * It has to keep agreeing with `compileOptions` above. Java and Kotlin compile to the same
+ * dex here, and a mismatch is only caught much later, in `dexBuilder`.
+ */
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_17
     }
 }
 

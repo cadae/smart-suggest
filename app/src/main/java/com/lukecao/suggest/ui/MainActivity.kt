@@ -65,6 +65,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -91,7 +92,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 
 /**
  * Setup, widget settings, and a live view of the ranker's output with the
@@ -402,8 +402,13 @@ private fun Screen(
 
         item {
             val last = Prefs.lastRefresh(context)
+            // LocalLocale rather than Locale.getDefault(): the latter is not observable
+            // state, so a locale changed while this screen is open formats the timestamp
+            // with the old one until something else happens to recompose. Compose's own
+            // lint calls this an error as of 1.11, which is how it was found.
             val stamp = if (last == 0L) "never" else
-                SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(last))
+                SimpleDateFormat("HH:mm:ss", LocalLocale.current.platformLocale)
+                    .format(Date(last))
             Text(
                 "Last background refresh: $stamp · ranked ${ranked.size} apps in ${computeMs}ms",
                 style = MaterialTheme.typography.bodySmall,
@@ -754,11 +759,16 @@ private fun AppPickerDialog(
 
     // Our own entry is filtered out: hiding it would do nothing, since this app is
     // never a suggestion candidate in the first place.
-    val all = remember(labels) {
+    // The same non-observable-locale problem as the timestamp above, which lint does not
+    // flag here because the call sits inside a `remember` lambda rather than directly in
+    // the composable. It is a real one either way: a locale is what decides how these
+    // sort, so it belongs in the key, or the list keeps yesterday's collation.
+    val locale = LocalLocale.current.platformLocale
+    val all = remember(labels, locale) {
         labels.entries
             .filter { it.key != context.packageName }
             .map { it.key to it.value }
-            .sortedBy { it.second.lowercase(Locale.getDefault()) }
+            .sortedBy { it.second.lowercase(locale) }
     }
     // Matched on the package name as well as the label, because that is how you find
     // the second of two apps with the same name.

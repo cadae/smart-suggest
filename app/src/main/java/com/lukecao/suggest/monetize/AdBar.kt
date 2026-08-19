@@ -56,6 +56,22 @@ fun AdBar(modifier: Modifier = Modifier) {
     // Anchored adaptive rather than the fixed 320x50 BANNER: the height comes back sized
     // to the device instead of scaled to it, which on a Fold's inner display is the
     // difference between a banner and a stretched postage stamp.
+    //
+    // Deprecated as of ads 25.x, and deliberately still here. Checked against the 25.4.0
+    // bytecode rather than guessed: exactly three methods carry `Deprecated: true` —
+    // `getCurrentOrientation`, `getPortrait` and `getLandscape` anchored adaptive — while
+    // the `getLarge*AnchoredAdaptiveBannerAdSize` family added beside them does not. So the
+    // replacement is `getLargeAnchoredAdaptiveBannerAdSize`, and the name is the problem:
+    // it returns a **taller** banner.
+    //
+    // That is a layout change, not an API change. The bar's height is a measured number
+    // here — the height latch below, the 39 px navigation inset under it, and the
+    // pixel-diff that proved the launch gap was closed are all pinned to the size this
+    // call returns. Swapping it unverified would move all three and nothing on a desk can
+    // tell whether the result is right; it needs the phone. Left as a one-line change for
+    // whoever has one, and recorded in docs/handoff.md so it is not discovered by the
+    // deprecation eventually becoming a removal.
+    @Suppress("DEPRECATION")
     val size = remember(widthDp) {
         AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(context, widthDp)
     }
