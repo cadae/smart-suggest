@@ -5,7 +5,25 @@
       DayNight family has no NoActionBar variant. Dark mode is done the old way
       instead, with a -night override of this same style.
     -->
-    <style name="Theme.Suggest" parent="@android:style/Theme.DeviceDefault.Light.NoActionBar" />
+    <style name="Theme.Suggest" parent="@android:style/Theme.DeviceDefault.Light.NoActionBar">
+        <!--
+          Dark icons in the status and navigation bars, because the app draws a light
+          surface under both of them.
+
+          Required from targetSdk 35 onwards and not before. Up to 34 the platform drew a
+          translucent scrim behind the bars and picked contrasting icons itself, so this
+          looked right without being asked. Edge-to-edge is enforced from 35: the scrim is
+          gone, nothing adapts, and the icons keep whatever appearance was last set — which
+          on this device is the light set, leaving a white clock on a white background at a
+          contrast ratio of roughly 1:1. Measured on the cover panel: the darkest pixel in
+          the clock was luminance 249 against a background of 249.
+
+          Set in the theme rather than by calling enableEdgeToEdge() in onCreate so that it
+          is right in the very first frame. Applied from a theme there is nothing to flash.
+        -->
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
 
     <!-- The launch trampoline must never draw anything. -->
     <style name="Theme.Trampoline" parent="@android:style/Theme.Translucent.NoTitleBar">
