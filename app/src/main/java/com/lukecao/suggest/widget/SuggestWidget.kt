@@ -39,6 +39,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import com.lukecao.suggest.Permissions
 import com.lukecao.suggest.R
 import com.lukecao.suggest.data.AppCatalog
 import com.lukecao.suggest.data.Prefs
@@ -182,10 +183,25 @@ abstract class SuggestWidget(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                // A resource rather than a literal: this is the only user-facing
-                // sentence the widget ever shows, so it is the one string that has to
+                // A resource rather than a literal: these are the only user-facing
+                // sentences the widget ever shows, so they are the ones that have to
                 // be translatable.
-                text = context.getString(R.string.widget_empty),
+                //
+                // Two of them, and the split is the whole point. An empty grid has two
+                // causes that look identical from here and read completely differently
+                // to the person holding the phone: no permission, which they can fix,
+                // and no history yet, which they cannot. Showing the first message for
+                // both meant a fresh install told the user to grant usage access while
+                // the app's own settings screen said "Usage access — on" — found on an
+                // emulator, because a phone with weeks of history can never reach this
+                // state. See docs/handoff.md.
+                text = context.getString(
+                    if (Permissions.hasUsageAccess(context)) {
+                        R.string.widget_waiting
+                    } else {
+                        R.string.widget_empty
+                    },
+                ),
                 style = TextStyle(
                     color = LABEL,
                     fontSize = (11f / scale).sp,

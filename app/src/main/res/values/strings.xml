@@ -8,9 +8,16 @@
     <string name="widget_label_4x3">Suggested apps 4 × 3</string>
     <string name="widget_label_4x5">Suggested apps 4 × 5</string>
     <string name="widget_description">Apps ranked by how you actually use them: what you were just doing, the time of day, where you are, and what you tap. Shows one app per cell.</string>
-    <!-- The whole of the widget when there is nothing to show, which in practice means
-         usage access has not been granted yet. Tapping it opens the app. -->
+    <!-- The whole of the widget when there is nothing to show and the reason is fixable:
+         usage access has not been granted. Tapping it opens the app. -->
     <string name="widget_empty">Tap to grant usage access</string>
+    <!-- The same space when access *is* granted and there is simply no history yet.
+         This used to show the string above, which told a first-run user to grant a
+         permission they had just granted — the settings screen said "Usage access — on"
+         while the widget beside it asked for it. Kept short because it has to fit a 2x2
+         at 11sp, and phrased as a state rather than an instruction, because unlike the
+         message above there is nothing for anyone to do about it. -->
+    <string name="widget_waiting">Learning your apps</string>
     <!-- Shown in Settings > Notification access, next to the switch. -->
     <string name="notif_listener_label">Smart Suggest ranking</string>
 </resources>
