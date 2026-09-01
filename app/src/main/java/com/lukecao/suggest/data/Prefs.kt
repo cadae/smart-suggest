@@ -19,8 +19,6 @@ object Prefs {
     private const val KEY_SIG_PLACE = "sig_place"
     private const val KEY_SIG_NOTIF = "sig_notif"
     private const val KEY_SIG_CALENDAR = "sig_calendar"
-    private const val KEY_ADS_REMOVED = "ads_removed"
-    private const val KEY_BANNER_FILLED = "banner_filled"
 
     /**
      * Settings that no longer exist, cleared on the next write.
@@ -32,6 +30,7 @@ object Prefs {
     private val RETIRED_KEYS = listOf(
         "cols", "rows", "icon_dp", "refresh_minutes",
         "sig_recent", "sig_rhythm", "sig_feedback", "sig_explore", "sig_device",
+        "ads_removed", "banner_filled",
     )
 
     private fun sp(context: Context): SharedPreferences =
@@ -86,39 +85,6 @@ object Prefs {
         s.edit().putInt(KEY_EXPLORE_CURSOR, next).apply()
         return next
     }
-
-    /**
-     * Whether the remove-ads purchase has been seen, cached so the answer survives being
-     * offline.
-     *
-     * Deliberately **not** part of [WidgetSettings]. That object round-trips through
-     * [putSettings] every time the user flips a switch, and an entitlement that can be
-     * rewritten by an unrelated save is an entitlement that can be lost by one. It is
-     * also not a setting: nobody gets to toggle it.
-     *
-     * Play is the source of truth and this is only a cache, which matters in one
-     * direction. See `Entitlement` for the rule about which way a failed query is allowed
-     * to move it.
-     */
-    fun adsRemoved(context: Context): Boolean =
-        sp(context).getBoolean(KEY_ADS_REMOVED, false)
-
-    fun putAdsRemoved(context: Context, removed: Boolean) =
-        sp(context).edit().putBoolean(KEY_ADS_REMOVED, removed).apply()
-
-    /**
-     * Whether a banner has ever filled on this install.
-     *
-     * Only [AdBar] reads it, and only to decide whether to reserve the bar's height in the
-     * very first frame rather than waiting for the ad. It is a latch, not a state: nothing
-     * ever sets it back to false, because "this device can show ads" does not stop being
-     * true when one request fails.
-     */
-    fun bannerEverFilled(context: Context): Boolean =
-        sp(context).getBoolean(KEY_BANNER_FILLED, false)
-
-    fun putBannerEverFilled(context: Context) =
-        sp(context).edit().putBoolean(KEY_BANNER_FILLED, true).apply()
 
     fun settings(context: Context): WidgetSettings {
         val s = sp(context)

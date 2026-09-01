@@ -1,15 +1,6 @@
 .gradle/
 build/
 local.properties
-# The upload key and its passwords. Losing this file means losing the ability to
-# update the listing; committing it means anybody can publish as you.
-keystore.properties
-# The AdMob app and unit IDs. Not secrets in the sense a password is — they ship inside
-# every APK and can be read out of one — but they name the account that gets paid, and
-# a public repo is an invitation to point somebody else's traffic at them.
-admob.properties
-*.jks
-*.keystore
 *.iml
 .idea/
 .kotlin/

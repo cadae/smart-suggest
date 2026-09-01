@@ -30,22 +30,11 @@
          what the WiFi-identity network callback needs. -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!-- The ad bar and the purchase check, and nothing else. For most of this project
-         there was no network permission at all, and the privacy claim was the strong form
-         — the usage history *could not* leave the device, whatever a bug did. That is no
-         longer true and the README says so in those words rather than quietly softening.
-
-         What is still true is narrower and worth stating exactly: no code of ours reads
-         the session, breadcrumb, notification or impression tables and writes them to a
-         socket. The ranking is computed on the device from data that stays on the device.
-         What crosses the network is the ad request, the advertising ID that the Google
-         Mobile Ads SDK attaches to it, and the Play Billing round-trip that answers "has
-         this person paid". See README, "Privacy" and "Ads".
-
-         com.google.android.gms.permission.AD_ID is not declared here because the ads SDK
-         merges it in from its own manifest. It still has to be declared on the Data
-         Safety form, which is the part that is easy to forget. -->
-    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- No INTERNET permission. There is no network code: nothing in this app can
+         open a socket, which is what makes the privacy claim in the README the strong
+         form — the usage history could not leave the device, whatever a bug did. It
+         went when the ad bar went, and it should not come back without that claim
+         being revisited where it lives. -->
 
     <!-- Meeting signal. Read-only, and nothing from an event is ever stored: titles
          and descriptions are scanned for a meeting link in memory and discarded. -->
@@ -73,26 +62,6 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.Suggest">
-
-        <!-- Substituted from admob.properties by the build, falling back to Google's
-             published test app ID. The SDK reads this at initialisation and throws if it
-             is missing or malformed, so it is not optional even in a build nobody
-             intends to monetise. See app/build.gradle.kts. -->
-        <meta-data
-            android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="${admobAppId}" />
-
-        <!-- Both recommended by Google and both about the same failure: the ads SDK does
-             disk and network work during initialisation and during the first ad load, and
-             on the main thread that surfaces as an ANR rather than as a slow ad. These
-             move it off. Ads.start also calls initialize from a background thread, which
-             is belt and braces — the flags cover the parts of the SDK we do not call. -->
-        <meta-data
-            android:name="com.google.android.gms.ads.flag.OPTIMIZE_INITIALIZATION"
-            android:value="true" />
-        <meta-data
-            android:name="com.google.android.gms.ads.flag.OPTIMIZE_AD_LOADING"
-            android:value="true" />
 
         <!-- No android:label: the application tag already carries the same one, and a
              duplicate is one more place to forget when it changes. -->

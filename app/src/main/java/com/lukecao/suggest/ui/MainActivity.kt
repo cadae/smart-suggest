@@ -1,7 +1,6 @@
 package com.lukecao.suggest.ui
 
 import android.Manifest
-import android.app.Activity
 import android.appwidget.AppWidgetManager
 import android.content.ComponentName
 import android.content.Intent
@@ -27,7 +26,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -69,7 +67,6 @@ import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.lukecao.suggest.BuildConfig
 import com.lukecao.suggest.Permissions
 import com.lukecao.suggest.data.AppCatalog
@@ -77,9 +74,6 @@ import com.lukecao.suggest.data.Prefs
 import com.lukecao.suggest.data.SignalSettings
 import com.lukecao.suggest.data.WidgetSettings
 import com.lukecao.suggest.eval.Replay
-import com.lukecao.suggest.monetize.AdBar
-import com.lukecao.suggest.monetize.Ads
-import com.lukecao.suggest.monetize.Billing
 import com.lukecao.suggest.rank.Ranker
 import com.lukecao.suggest.rank.Scored
 import com.lukecao.suggest.sense.NotifListener
@@ -102,63 +96,18 @@ class MainActivity : ComponentActivity() {
 
     private val refreshKey = mutableIntStateOf(0)
 
-    /**
-     * Owned here, not by [com.lukecao.suggest.App], and connected only while this activity
-     * is started. See [Billing] — the short version is that the other ways into this
-     * process have no user in front of them.
-     */
-    private lateinit var billing: Billing
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        billing = Billing(this)
-        // Consent first, then the SDK, and neither on the main thread. Started here rather
-        // than lazily from the ad bar so that the round-trip overlaps with reading usage
-        // stats instead of following it.
-        //
-        // Skipped outright for somebody who has paid. They are owed the absence of the ad
-        // bar, but what they actually bought is the absence of everything behind it — a
-        // WebView, a handshake with the ad server, and an advertising ID leaving the phone.
-        // Hiding the bar while still initialising the SDK would keep all three. Read from
-        // the cache rather than from Play so it holds offline; if the purchase is later
-        // refunded, ads return on the next launch rather than mid-session, which is the
-        // right way round.
-        if (!Prefs.adsRemoved(this)) {
-            Ads.start(this) { refreshKey.intValue++ }
-        }
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
-                    val pay by billing.state.collectAsStateWithLifecycle()
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        Screen(
-                            refreshKey = refreshKey.intValue,
-                            pay = pay,
-                            onBuy = { billing.buy(this@MainActivity) },
-                            modifier = Modifier.weight(1f),
-                        ) { refreshKey.intValue++ }
-                        if (!pay.adsRemoved) {
-                            // navigationBarsPadding, because targetSdk 35 draws this
-                            // window behind the system bars. Without it the bar sits under
-                            // the navigation bar, which looks broken and — worse — puts a
-                            // paid click target under the gesture area.
-                            AdBar(modifier = Modifier.navigationBarsPadding())
-                        }
-                    }
+                    Screen(
+                        refreshKey = refreshKey.intValue,
+                    ) { refreshKey.intValue++ }
                 }
             }
         }
         maybeReplay()
-    }
-
-    override fun onStart() {
-        super.onStart()
-        billing.start()
-    }
-
-    override fun onDestroy() {
-        billing.stop()
-        super.onDestroy()
     }
 
     /**
@@ -212,8 +161,6 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun Screen(
     refreshKey: Int,
-    pay: Billing.State,
-    onBuy: () -> Unit,
     modifier: Modifier = Modifier,
     bump: () -> Unit,
 ) {
@@ -303,10 +250,8 @@ private fun Screen(
     // what every other edge-to-edge app does, and it is the reason the padding is here at
     // all rather than on the Column in onCreate.
     //
-    // Needed since targetSdk 35, which made this window draw behind the system bars —
-    // the sibling AdBar got its navigationBarsPadding at the time and this did not, so
-    // the title has been sitting under the clock since. Not a targetSdk 36 change; 36
-    // only removes the opt-out this app never used.
+    // Needed since targetSdk 35, which made this window draw behind the system bars.
+    // Not a targetSdk 36 change; 36 only removes the opt-out this app never used.
     val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
 
     LazyColumn(
@@ -380,7 +325,6 @@ private fun Screen(
         item { BackgroundCard(settings) { apply(it) } }
         item { RefreshCard(settings) { apply(it) } }
         item { HiddenAppsCard(settings, labels) { apply(it) } }
-        item { RemoveAdsCard(pay, onBuy) }
 
         if (BuildConfig.DEBUG) {
             item {
@@ -947,95 +891,6 @@ private fun EvalCard(report: String?, running: Boolean, onRun: () -> Unit) {
                 softWrap = false,
                 modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
             )
-        }
-    }
-}
-
-/**
- * The one thing this app sells, and the privacy-options entry the ad SDK requires.
- *
- * Reads only [Billing.State], so every branch here is a state Play actually reported.
- * Nothing is inferred from "the button did not work".
- */
-@Composable
-private fun RemoveAdsCard(pay: Billing.State, onBuy: () -> Unit) {
-    val context = LocalContext.current
-    // The activity, but only when a privacy-options row is actually owed — carried as a
-    // nullable value rather than a boolean beside it, so the thing that needs an activity
-    // and the thing that decides whether to show it cannot disagree.
-    //
-    // Owed only once consent has been given in a consent region, and null everywhere else,
-    // so this is a conditional row rather than a permanent one. Recomputed on each
-    // composition because answering the consent form changes the answer.
-    val privacyHost = (context as? Activity)?.takeIf { Ads.privacyOptionsRequired(it) }
-
-    SettingsCard(
-        title = "Ads",
-        subtitle = when {
-            pay.adsRemoved -> "Removed — thank you"
-            pay.pending -> "Payment pending with Google"
-            else -> "One bar at the bottom of this screen"
-        },
-    ) {
-        if (pay.adsRemoved) {
-            Text(
-                "Gone for good, on this phone and any phone on the same Google account. Play " +
-                    "remembers the purchase, so a reinstall keeps it.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-        } else {
-            Text(
-                "Only this settings screen shows an ad, never the widget. Nothing about your " +
-                    "usage or apps is sent to the advertiser — the ranking stays on the phone.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Spacer(Modifier.height(10.dp))
-            Text(
-                "Removing them is a single payment, once, forever. Not a subscription.",
-                style = MaterialTheme.typography.labelLarge,
-            )
-            Spacer(Modifier.height(8.dp))
-
-            if (pay.pending) {
-                Text(
-                    "Google is still clearing the payment. The bar goes by itself when that " +
-                        "completes; paying again would charge twice.",
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            } else {
-                Button(
-                    onClick = onBuy,
-                    // Disabled without a price rather than showing a button that opens
-                    // nothing: no price means Play has not offered the product here.
-                    enabled = pay.price != null && !pay.buying,
-                ) {
-                    Text(
-                        when {
-                            pay.buying -> "Opening Google Play…"
-                            pay.price != null -> "Remove ads · ${pay.price}"
-                            else -> "Remove ads"
-                        },
-                    )
-                }
-                if (pay.price == null && pay.unavailable != null) {
-                    Spacer(Modifier.height(6.dp))
-                    Text(pay.unavailable, style = MaterialTheme.typography.bodySmall)
-                }
-            }
-        }
-
-        if (privacyHost != null) {
-            Spacer(Modifier.height(10.dp))
-            HorizontalDivider()
-            Spacer(Modifier.height(10.dp))
-            Text(
-                "You chose what advertisers may use. You can change that at any time.",
-                style = MaterialTheme.typography.bodySmall,
-            )
-            Spacer(Modifier.height(6.dp))
-            OutlinedButton(onClick = { Ads.showPrivacyOptions(privacyHost) }) {
-                Text("Ad privacy options")
-            }
         }
     }
 }

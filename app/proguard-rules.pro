@@ -4,13 +4,6 @@
 #  - every activity, receiver and service is declared in the manifest, and AGP
 #    generates keeps for those automatically;
 #  - Compose, Glance and WorkManager all ship consumer rules inside their own AARs;
-#  - so do the ads SDK, Play Billing and the consent SDK, which is worth stating because
-#    hand-written billing keeps are a common bit of copied advice. Checked, not assumed:
-#    billing-9.1.0 keeps com.android.vending.billing.**, keepnames both ProxyBillingActivity
-#    classes and keeps the fields of its protobuf superclass; play-services-ads keeps
-#    ClientApi and the mediation adapter interfaces; user-messaging-platform keeps its own
-#    protobuf fields. Restating any of that here would only risk it going stale against
-#    the AAR, which is the version that actually applies;
 #  - the database is raw SQLite with column names written out as strings, so there is
 #    no schema to reflect over.
 #
@@ -33,7 +26,7 @@
 -keep class com.lukecao.suggest.widget.SuggestWidgetReceiver* { *; }
 
 # Obfuscation buys nothing here — there is no license check, no API key, and no
-# network call to protect — and it costs a readable stack trace in a Play Console
-# crash report, which is the only view into a crash on somebody else's phone.
+# network call to protect — and it costs a readable stack trace in a crash report,
+# which is the only view into a crash on somebody else's phone.
 # Shrinking still happens; only the renaming is off.
 -dontobfuscate
