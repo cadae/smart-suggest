@@ -32,6 +32,7 @@ import java.util.concurrent.Executors
 class NotifListener : NotificationListenerService() {
 
     override fun onListenerConnected() {
+        connectedListener = this
         if (!enabled()) {
             requestUnbind()
             return
@@ -45,7 +46,17 @@ class NotifListener : NotificationListenerService() {
         } catch (_: Throwable) {
             null
         } ?: return
-        write { it.replacePending(active) }
+        write { if (enabled()) it.replacePending(active) }
+    }
+
+    override fun onListenerDisconnected() {
+        if (connectedListener === this) connectedListener = null
+        super.onListenerDisconnected()
+    }
+
+    override fun onDestroy() {
+        if (connectedListener === this) connectedListener = null
+        super.onDestroy()
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification?) {
@@ -55,6 +66,8 @@ class NotifListener : NotificationListenerService() {
         val pkg = n.packageName
         val ts = n.postTime
         write {
+            // The switch can change while this task waits for a previous disk write.
+            if (!enabled()) return@write
             it.addNotif(ts, pkg)
             it.addPending(key, pkg, ts)
             // Inside the write so the widget re-ranks against the row that was just
@@ -134,6 +147,30 @@ class NotifListener : NotificationListenerService() {
 
     companion object {
         private val IO = Executors.newSingleThreadExecutor()
+
+        @Volatile
+        private var connectedListener: NotifListener? = null
+
+        /** Call after saving the setting, so an immediate rebind sees the new value. */
+        fun settingsChanged(context: Context) {
+            if (Prefs.settings(context).signals.notifications) {
+                rebind(context)
+            } else {
+                try {
+                    connectedListener?.requestUnbind()
+                } catch (_: Exception) {
+                    // The platform may already have disconnected the listener.
+                }
+                val app = context.applicationContext
+                IO.execute {
+                    try {
+                        Store.of(app).replacePending(emptyList())
+                    } catch (_: Exception) {
+                        // Ranking also checks the toggle, so stale rows cannot boost apps.
+                    }
+                }
+            }
+        }
 
         /** Categories that describe a state rather than an event: transport controls,
          *  a background service, a progress bar. */

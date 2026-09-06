@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
@@ -217,13 +218,10 @@ private fun Screen(
         val rerank = next.hidden != settings.hidden ||
             next.hideSystemApps != settings.hideSystemApps ||
             next.signals != settings.signals
-        // We asked the system to unbind us when this went off, and it will not come
-        // back on its own.
-        if (next.signals.notifications && !settings.signals.notifications) {
-            NotifListener.rebind(context)
-        }
+        val notificationsChanged = next.signals.notifications != settings.signals.notifications
         settings = next
         Prefs.putSettings(context, next)
+        if (notificationsChanged) NotifListener.settingsChanged(context)
 
         // The background colour is already satisfiable from the cache, so push it
         // straight to every placed widget for instant feedback.
@@ -253,6 +251,7 @@ private fun Screen(
     // Needed since targetSdk 35, which made this window draw behind the system bars.
     // Not a targetSdk 36 change; 36 only removes the opt-out this app never used.
     val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val navigationBar = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
@@ -260,7 +259,7 @@ private fun Screen(
             start = 16.dp,
             end = 16.dp,
             top = 16.dp + statusBar,
-            bottom = 16.dp,
+            bottom = 16.dp + navigationBar,
         ),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {

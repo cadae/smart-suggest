@@ -65,7 +65,7 @@ data class CtxSample(
  * Six small tables — the app-session history, a context trail, widget taps, impression
  * counts, notification posts, and which notifications are still outstanding. Raw SQLite
  * rather than Room on purpose: the schema is narrow and this keeps an annotation
- * processor out of a build that has no Gradle wrapper.
+ * processor out of the build.
  *
  * Nothing here ever leaves the device; the app declares no network permission at all.
  *
@@ -141,6 +141,13 @@ class Store private constructor(context: Context) :
             )
         }
         if (oldVersion < 3) db.execSQL(SESS_TABLE)
+        if (oldVersion < 4) {
+            // Platform notification keys can embed an app-supplied tag. Drop these
+            // short-lived rows on upgrade; the listener rebuilds them with digests.
+            // Sessions, taps and the rest of the learned history stay intact.
+            db.execSQL("PRAGMA secure_delete=ON")
+            db.delete("pending", null, null)
+        }
     }
 
     // -------------------------------------------------------------- session history
@@ -313,7 +320,7 @@ class Store private constructor(context: Context) :
 
     fun addPending(key: String, pkg: String, ts: Long) {
         val v = ContentValues(3).apply {
-            put("key", key)
+            put("key", NotificationKey.digest(key))
             put("pkg", pkg)
             put("ts", ts)
         }
@@ -327,7 +334,7 @@ class Store private constructor(context: Context) :
      *   ranking. Worth a re-rank; the rest are not.
      */
     fun removePending(key: String): Boolean =
-        writableDatabase.delete("pending", "key = ?", arrayOf(key)) > 0
+        writableDatabase.delete("pending", "key = ?", arrayOf(NotificationKey.digest(key))) > 0
 
     /**
      * Rewrites the whole set from what the platform currently reports. The listener
@@ -343,7 +350,7 @@ class Store private constructor(context: Context) :
                 db.insertWithOnConflict(
                     "pending", null,
                     ContentValues(3).apply {
-                        put("key", key)
+                        put("key", NotificationKey.digest(key))
                         put("pkg", pkg)
                         put("ts", ts)
                     },
@@ -407,7 +414,7 @@ class Store private constructor(context: Context) :
 
     companion object {
         private const val NAME = "suggest.db"
-        private const val VERSION = 3
+        private const val VERSION = 4
         private const val PENDING_MAX_AGE_MS = 24 * 60 * 60 * 1000L
 
         /**

@@ -6,3 +6,34 @@ local.properties
 .kotlin/
 captures/
 build.log
+
+# Local credentials and signing material
+.env
+.env.*
+!.env.example
+keystore.properties
+admob.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.pem
+*.key
+google-services.json
+service-account*.json
+
+# Device data, diagnostics and build artifacts
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.log
+*.hprof
+*.apk
+*.aab
+*.apks
+*.idsig
+*.dump
+*.trace
+.DS_Store
+private/
