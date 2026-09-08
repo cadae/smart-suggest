@@ -1,0 +1,149 @@
+name: Release APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Keep release publication ordered. GitHub may coalesce pending main updates.
+concurrency:
+  group: release-apk-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          validate-wrappers: true
+
+      - name: Install Android SDK packages
+        run: sdkmanager 'platforms;android-36' 'build-tools;35.0.0'
+
+      - name: Check publication inputs
+        run: python3 scripts/check-public-tree.py
+
+      - name: Set build version
+        id: version
+        run: |
+          echo "code=$((1000 + GITHUB_RUN_NUMBER))" >> "$GITHUB_OUTPUT"
+          echo "version=1.0.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "tag=build-${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+
+      - name: Restore CI signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_RELEASE_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+        run: |
+          if [[ -z "$KEYSTORE_BASE64" || -z "$KEYSTORE_PASSWORD" ]]; then
+            echo '::error::Configure both ANDROID_RELEASE_KEYSTORE_B64 and ANDROID_RELEASE_KEYSTORE_PASSWORD repository secrets.'
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.keystore"
+
+      - name: Test, lint and build the release APK
+        env:
+          CI_RELEASE_KEYSTORE: ${{ runner.temp }}/release.keystore
+          CI_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_RELEASE_KEYSTORE_PASSWORD }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+          VERSION_NAME: ${{ steps.version.outputs.version }}
+        run: |
+          ./gradlew --no-daemon --no-configuration-cache \
+            testDebugUnitTest lintRelease assembleRelease \
+            -PciVersionCode="$VERSION_CODE" -PciVersionName="$VERSION_NAME"
+
+      - name: Verify and package APK
+        env:
+          VERSION_NAME: ${{ steps.version.outputs.version }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: |
+          apk=app/build/outputs/apk/release/app-release.apk
+          tools="$ANDROID_HOME/build-tools/35.0.0"
+          "$tools/apksigner" verify --verbose "$apk"
+          "$tools/aapt2" dump permissions "$apk" > "$RUNNER_TEMP/apk-permissions.txt"
+          if grep -q 'android.permission.INTERNET' "$RUNNER_TEMP/apk-permissions.txt"; then
+            echo '::error::Release APK unexpectedly requests INTERNET.'
+            exit 1
+          fi
+          "$tools/aapt2" dump badging "$apk" > "$RUNNER_TEMP/apk-badging.txt"
+          if grep -q '^application-debuggable' "$RUNNER_TEMP/apk-badging.txt"; then
+            echo '::error::Release APK is debuggable.'
+            exit 1
+          fi
+          grep -F "package: name='com.lukecao.suggest' versionCode='$VERSION_CODE' versionName='$VERSION_NAME'" "$RUNNER_TEMP/apk-badging.txt"
+          mkdir -p dist
+          cp "$apk" "dist/smart-suggest-${VERSION_NAME}.apk"
+          (cd dist && sha256sum ./*.apk > SHA256SUMS)
+
+      - name: Remove signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/release.keystore"
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-apk
+          path: dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  release:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: release-apk
+          path: dist
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.build.outputs.tag }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          (cd dist && sha256sum --check SHA256SUMS)
+          cat > "$RUNNER_TEMP/release-notes.md" <<EOF_NOTES
+          Automated main build from commit ${GITHUB_SHA}.
+
+          Download the APK below to install Smart Suggest on Android 12 or later.
+          SHA256SUMS contains the download checksum.
+
+          These APKs use a persistent CI signing key and can update earlier CI releases.
+          Locally debug-signed installations use a different key and cannot be updated
+          with this APK. Do not uninstall an existing copy to resolve a signing mismatch:
+          uninstalling deletes its learned history.
+          EOF_NOTES
+          # A rerun can complete an interrupted upload, but cannot replace another commit.
+          if gh release view "$TAG" --json tagName >/dev/null 2>&1; then
+            target=$(gh api "repos/$GH_REPO/git/ref/tags/$TAG" --jq '.object.sha')
+            [[ "$target" == "$GITHUB_SHA" ]] || { echo 'Release tag points to a different commit'; exit 1; }
+            gh release upload "$TAG" dist/*.apk dist/SHA256SUMS --clobber
+          else
+            gh release create "$TAG" dist/*.apk dist/SHA256SUMS \
+              --target "$GITHUB_SHA" --title "Smart Suggest ${VERSION}" \
+              --notes-file "$RUNNER_TEMP/release-notes.md" --latest
+          fi

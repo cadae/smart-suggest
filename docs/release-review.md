@@ -27,9 +27,11 @@ publication tree with redacted output. Both found zero remaining matches. Ignore
 cover signing material, environment files, device databases, logs and compiled artifacts.
 Private audit evidence and the original-history backup are stored outside the repository.
 
-**Remote publication is a separate step.** Until rewritten main is force-pushed, the hosting
-service still has the old history. Rewriting branch refs does not erase other people's
-clones, forks, cached commit pages, or server-retained objects. Follow
+**Remote follow-up, 8 September 2026:** the repository was deleted and recreated, populated
+with the sanitized history, then made public. All 28 original commit hashes were unavailable
+from the recreated repository, and a fresh clone passed the publication-input scan.
+Rewriting branch refs alone does not erase other people's clones, forks, cached commit
+pages, or server-retained objects. Follow
 [GitHub's sensitive-data removal guidance](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)
 for any remaining server-side copies before treating them as purged. At audit time the
 remote was private, with one branch and no releases, pull requests or Actions artifacts.
@@ -73,5 +75,7 @@ Use a disposable fixture for migration tests, not a user's only history database
 The ranker's known home-screen baseline gap, repeated-tap feedback, cold-cache concurrency,
 and light-only theme remain documented in design.md. They were not changed in this cleanup.
 Debug signing is intentional for local builds and unsuitable as a store-release plan.
+Automated GitHub APK releases now use a separate persistent CI key; see README.md for
+the workflow, secret setup, versioning, and installation compatibility.
 A repository license has not been selected. Public visibility alone does not grant an
 open-source license.

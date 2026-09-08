@@ -19,8 +19,10 @@ changes; INTERNET must remain absent unless the privacy architecture is explicit
 
 Do not run adb uninstall, clear app data, or replace signing keys on a user's installation.
 Use adb install -r with the same key. Backups and device transfers are disabled, so removing
-app data destroys learned history. Both build variants deliberately use local debug signing
-for compatibility. Store distribution requires a separate signing decision.
+app data destroys learned history. Local builds deliberately use debug signing for
+compatibility. GitHub releases use a separate persistent CI identity, selected only when
+CI_RELEASE_KEYSTORE and CI_RELEASE_KEYSTORE_PASSWORD are supplied. Never rotate that key
+as incidental maintenance. Store distribution requires a separate signing decision.
 
 Keep the application ID and widget-provider class names stable. Existing widgets and
 WorkManager jobs refer to those names. Database upgrades must retain sessions and taps.

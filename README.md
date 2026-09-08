@@ -19,11 +19,38 @@ Open Smart Suggest, grant usage access, and add a widget from the app or your la
 widget picker. Available sizes are 2×2, 2×3, 4×2, 4×3 and 4×5. New installations need
 usage history before suggestions appear.
 
-Both debug and release builds currently use the local Android debug signing key. The
-release variant enables R8 and resource shrinking for testing; it is not configured for
-store distribution. Updating an existing installation requires the same signing key.
+Local debug and release builds use the local Android debug signing key. CI releases use
+a separate, persistent signing key. The release variant enables R8 and resource shrinking;
+it is not configured for store distribution. Updating an installation requires the same key.
 Do not uninstall to resolve a signature mismatch: uninstalling destroys the learned history.
 The application ID remains `com.lukecao.suggest` for compatibility with existing installs.
+
+## Downloadable APKs
+
+Download the APK from [the latest release](https://github.com/cadae/smart-suggest/releases/latest).
+Each successful `Release APK` workflow run publishes an APK and `SHA256SUMS`. The workflow
+runs when `main` is updated and can also be started manually from the Actions tab on `main`.
+Pending updates may be coalesced while another release is running.
+
+CI APKs use one persistent signing key, so a newer CI release can update an older one.
+They cannot update installations signed with a local debug key. Do not uninstall an existing
+copy to work around that mismatch: its learned history would be lost.
+
+Builds run unit tests and release lint, verify the APK signature, and reject APKs that are
+debuggable or request `INTERNET`. Releases use tags such as `build-1`, version names such as
+`1.0.1`, and increasing Android version codes (`1000 + workflow run number`). Reruns retain
+the same tag and version. Keep this workflow's run numbering intact; if replacing the
+workflow, ensure new version codes exceed every previously distributed build.
+
+The repository needs two Actions secrets: `ANDROID_RELEASE_KEYSTORE_B64` (the base64-encoded
+PKCS12 keystore, with alias `release`) and `ANDROID_RELEASE_KEYSTORE_PASSWORD` (the password
+for both the store and key). Missing secrets fail the build rather than generating a new
+identity. Keep a secure backup outside the repository: losing this key prevents updates to
+existing CI installations. Never publish it as an artifact or commit it to Git.
+
+The workflow restores signing material only in the runner's temporary directory and removes
+it after building. Configuration caching is disabled for the signing build. Only the
+publication job receives repository write permission; the build job has read access.
 
 ## How it works
 

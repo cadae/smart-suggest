@@ -126,5 +126,6 @@ from selecting an app on the home screen.
 - Cold widget computations are outside the worker's mutex. Concurrent callers can update
   the shared snapshot independently. The two-minute limit covers worker runs only.
 - The settings screen currently uses a light Material theme in dark mode too.
-- Release builds use debug signing for local testing. Public source availability does not
-  imply that an APK is prepared for store distribution.
+- Local release builds use debug signing for testing. Automated GitHub releases use a
+  separate persistent CI key and increasing version codes. CI and locally signed APKs
+  cannot update each other. Store distribution remains outside this configuration.

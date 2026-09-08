@@ -6,6 +6,11 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// CI uses a persistent release identity; local builds retain their existing debug key.
+val ciReleaseKeystore = providers.environmentVariable("CI_RELEASE_KEYSTORE").orNull
+val ciVersionCode = providers.gradleProperty("ciVersionCode").map(String::toInt).getOrElse(1)
+require(ciVersionCode in 1..2_100_000_000) { "ciVersionCode is outside Android's supported range" }
+
 android {
     namespace = "com.lukecao.suggest"
     compileSdk = 36
@@ -39,8 +44,20 @@ android {
          * res/values/themes.xml.
          */
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = ciVersionCode
+        versionName = providers.gradleProperty("ciVersionName").getOrElse("1.0")
+    }
+
+    signingConfigs {
+        if (ciReleaseKeystore != null) {
+            create("ciRelease") {
+                storeFile = file(ciReleaseKeystore)
+                storePassword = providers.environmentVariable("CI_RELEASE_KEYSTORE_PASSWORD").get()
+                keyAlias = "release"
+                keyPassword = storePassword
+                storeType = "PKCS12"
+            }
+        }
     }
 
     buildTypes {
@@ -54,11 +71,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
-            // Signed with the debug key, deliberately. This is not a Play release any
-            // more, so the only thing a release build is for is finding out what R8
-            // broke — and it has to survive `adb install -r` to do that, which means
-            // keeping the signature the installed app already carries.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(
+                if (ciReleaseKeystore != null) "ciRelease" else "debug",
+            )
         }
     }
 
